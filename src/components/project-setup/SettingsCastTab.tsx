@@ -175,7 +175,7 @@ const SettingsCastTab = ({ projectData, updateProjectData }: SettingsCastTabProp
                 value={projectData.cinematicInspiration || ""}
                 onChange={(e) => handleInputChange('cinematicInspiration', e.target.value)}
                 className="bg-[#0F1526] border-[#2A3558] text-white"
-                placeholder="E.g, "Retro, gritty, eclectic, stylish, noir...""
+                placeholder="E.g., Retro, gritty, eclectic, stylish, noir..."
               />
             </div>
           </div>
