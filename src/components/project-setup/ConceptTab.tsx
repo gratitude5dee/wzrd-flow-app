@@ -48,7 +48,7 @@ const ConceptTab = ({ projectData, updateProjectData }: ConceptTabProps) => {
     updateProjectData({ specialRequests: e.target.value });
   };
 
-  const handleFormatChange = (format: string) => {
+  const handleFormatChange = (format: 'custom' | 'short' | 'commercial') => {
     updateProjectData({ format });
     // Show commercial options only when commercial format is selected
     setShowCommercialOptions(format === 'commercial');
@@ -156,7 +156,6 @@ const ConceptTab = ({ projectData, updateProjectData }: ConceptTabProps) => {
             </div>
           </div>
           
-          {/* Examples section (moved to the right side) */}
           <div className="w-full md:w-[300px]">
             <div className="mb-4">
               <div className="flex justify-between items-center mb-4">
@@ -296,7 +295,7 @@ const ConceptTab = ({ projectData, updateProjectData }: ConceptTabProps) => {
                 <div>
                   <label className="text-sm text-zinc-400 mb-2 block">GENRE</label>
                   <Input
-                    value={projectData.genre}
+                    value={projectData.genre || ''}
                     onChange={handleGenreChange}
                     placeholder="This defines the overall style or category of your story"
                     className="w-full bg-zinc-900 border-zinc-800 text-white focus-visible:ring-zinc-700"
@@ -306,7 +305,7 @@ const ConceptTab = ({ projectData, updateProjectData }: ConceptTabProps) => {
                 <div>
                   <label className="text-sm text-zinc-400 mb-2 block">TONE</label>
                   <Input
-                    value={projectData.tone}
+                    value={projectData.tone || ''}
                     onChange={handleToneChange}
                     placeholder="This shapes the mood and emotional impact of your story"
                     className="w-full bg-zinc-900 border-zinc-800 text-white focus-visible:ring-zinc-700"
