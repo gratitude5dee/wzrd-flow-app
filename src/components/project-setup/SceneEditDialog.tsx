@@ -1,10 +1,17 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
-import { Info } from "lucide-react";
+import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 export interface Scene {
   id: number;
@@ -12,103 +19,132 @@ export interface Scene {
   description: string;
   sceneDescription: string;
   voiceover: string;
-  location?: string;
-  lighting?: string;
-  weather?: string;
+  location: string;
+  lighting: string;
+  weather: string;
 }
 
 interface SceneEditDialogProps {
   scene: Scene;
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
   onSave: (scene: Scene) => void;
 }
 
-export function SceneEditDialog({ scene, open, onOpenChange, onSave }: SceneEditDialogProps) {
+export const SceneEditDialog = ({ scene, open, onClose, onSave }: SceneEditDialogProps) => {
   const [editedScene, setEditedScene] = useState<Scene>(scene);
 
+  const handleChange = (field: keyof Scene, value: string) => {
+    setEditedScene(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = () => {
+    onSave(editedScene);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-zinc-900/95 border border-zinc-800 max-w-4xl">
+    <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="bg-[#1A1C26] text-white border-[#2A3558] max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-medium text-white">Edit Scene {scene.id}</DialogTitle>
+          <DialogTitle>Edit Scene</DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Add details to help visualize your scene better.
+          </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-6 py-4">
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium uppercase text-zinc-400">SCENE NAME</label>
-              <Input
-                value={editedScene.title}
-                onChange={(e) => setEditedScene({ ...editedScene, title: e.target.value })}
-                className="mt-1.5 bg-zinc-900 border-zinc-800 text-white"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium uppercase text-zinc-400">LOCATION</label>
-              <Textarea
-                value={editedScene.location}
-                onChange={(e) => setEditedScene({ ...editedScene, location: e.target.value })}
-                className="mt-1.5 bg-zinc-900 border-zinc-800 text-white h-32"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium uppercase text-zinc-400">LIGHTING</label>
-              <Input
-                value={editedScene.lighting}
-                onChange={(e) => setEditedScene({ ...editedScene, lighting: e.target.value })}
-                className="mt-1.5 bg-zinc-900 border-zinc-800 text-white"
-                placeholder="E.g., 'November, 11:00 PM, harsh artificial lighting...'"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium uppercase text-zinc-400">WEATHER</label>
-              <Input
-                value={editedScene.weather}
-                onChange={(e) => setEditedScene({ ...editedScene, weather: e.target.value })}
-                className="mt-1.5 bg-zinc-900 border-zinc-800 text-white"
-                placeholder="E.g., 'Crystal clear skies, calm atmosphere...'"
-              />
-            </div>
+
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="title">Scene Title</Label>
+            <Input
+              id="title"
+              value={editedScene.title}
+              onChange={(e) => handleChange('title', e.target.value)}
+              className="bg-[#0F1526] border-[#2A3558]"
+            />
           </div>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium uppercase text-zinc-400">SCENE*</label>
-              <Textarea
-                value={editedScene.sceneDescription}
-                onChange={(e) => setEditedScene({ ...editedScene, sceneDescription: e.target.value })}
-                className="mt-1.5 bg-zinc-900 border-zinc-800 text-white h-64"
+
+          <div className="grid gap-2">
+            <Label htmlFor="description">Brief Description</Label>
+            <Textarea
+              id="description"
+              value={editedScene.description}
+              onChange={(e) => handleChange('description', e.target.value)}
+              className="bg-[#0F1526] border-[#2A3558]"
+              rows={2}
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="sceneDescription">Scene Description</Label>
+            <Textarea
+              id="sceneDescription"
+              value={editedScene.sceneDescription}
+              onChange={(e) => handleChange('sceneDescription', e.target.value)}
+              className="bg-[#0F1526] border-[#2A3558]"
+              rows={4}
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="voiceover">Voiceover</Label>
+            <Textarea
+              id="voiceover"
+              value={editedScene.voiceover}
+              onChange={(e) => handleChange('voiceover', e.target.value)}
+              className="bg-[#0F1526] border-[#2A3558]"
+              rows={2}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={editedScene.location}
+                onChange={(e) => handleChange('location', e.target.value)}
+                className="bg-[#0F1526] border-[#2A3558]"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium uppercase text-zinc-400">VOICEOVER</label>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="lighting">Lighting</Label>
               <Input
-                value={editedScene.voiceover}
-                onChange={(e) => setEditedScene({ ...editedScene, voiceover: e.target.value })}
-                className="mt-1.5 bg-zinc-900 border-zinc-800 text-white"
-                placeholder="E.g., 'Somewhere over the Rainbow...'"
+                id="lighting"
+                value={editedScene.lighting}
+                onChange={(e) => handleChange('lighting', e.target.value)}
+                className="bg-[#0F1526] border-[#2A3558]"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="weather">Weather</Label>
+              <Input
+                id="weather"
+                value={editedScene.weather}
+                onChange={(e) => handleChange('weather', e.target.value)}
+                className="bg-[#0F1526] border-[#2A3558]"
               />
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-2 mt-6">
+
+        <DialogFooter>
           <Button 
             variant="outline" 
-            onClick={() => onOpenChange(false)}
-            className="border-zinc-700 hover:bg-zinc-800 text-white"
+            onClick={onClose}
+            className="bg-transparent text-white border-[#2A3558] hover:bg-[#2A3558]"
           >
             Cancel
           </Button>
           <Button 
-            onClick={() => {
-              onSave(editedScene);
-              onOpenChange(false);
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={handleSubmit}
+            className="bg-[#3B55E6] hover:bg-[#2E44B8]"
           >
-            Done
+            Save Scene
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-}
+};
