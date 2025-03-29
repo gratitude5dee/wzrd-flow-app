@@ -16,6 +16,17 @@ export interface ProjectData {
   videoStyle?: string;
   styleReference?: string;
   characters?: any[];
+  // Additional properties needed for ConceptTab
+  specialRequests?: string;
+  format?: 'custom' | 'short' | 'commercial';
+  customFormat?: string;
+  genre?: string;
+  tone?: string;
+  addVoiceover?: boolean;
+  product?: string;
+  targetAudience?: string;
+  mainMessage?: string;
+  callToAction?: string;
 }
 
 const ProjectSetupWizard = () => {
@@ -89,7 +100,6 @@ const ProjectSetupWizard = () => {
           <ConceptTab 
             projectData={projectData} 
             updateProjectData={updateProjectData} 
-            onNext={handleNext}
           />
         )}
         {activeTab === 'settings' && (
