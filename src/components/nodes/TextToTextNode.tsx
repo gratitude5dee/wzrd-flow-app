@@ -1,8 +1,6 @@
 import { memo, useState, useEffect } from 'react';
-// import { Handle, Position, useReactFlow } from 'reactflow'; // Handles are now in BaseNodeWrapper
-// import { X, Loader2, Coins } from 'lucide-react'; // X is handled by RF, Loader2 can be CircleDashed or similar, Coins is kept
-import { Loader2, Coins } from 'lucide-react'; // Loader2 for spinner, Coins for credits
-import BaseNodeWrapper, { CustomNodeProps, BaseNodeData } from './BaseNodeWrapper';
+import { Handle, Position, useReactFlow } from 'reactflow';
+import { X, Loader2, Coins } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,63 +10,64 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast as useShadcnToast } from '@/components/ui/use-toast'; // Renamed to avoid conflict
-import { models as textModels, ModelType as TextModelType } from '@/types/modelTypes'; // Assuming models are for text
+import { useToast } from '@/components/ui/use-toast';
+import { models, ModelType } from '@/types/modelTypes';
 import { generateText } from '@/services/textGeneration';
 import { useAuth } from "@/providers/AuthProvider";
 import { useCredits } from '@/hooks/useCredits';
-// import { toast } from 'sonner'; // sonner toast not used in original, stick to shadcn toast if that's the pattern
+import { toast } from 'sonner';
 
-export interface TextToTextNodeData extends BaseNodeData {
-  prompt?: string;
-  output?: string;
-  selectedModel?: TextModelType;
+interface TextToTextNodeProps {
+  id?: string;
+  data: {
+    label?: string;
+  };
 }
 
-const TextToTextNode = memo((props: CustomNodeProps<TextToTextNodeData>) => {
-  const { data } = props;
-
-  const [prompt, setPrompt] = useState(data.prompt || '');
-  const [output, setOutput] = useState(data.output || '');
+const TextToTextNode = memo(({ id, data }: TextToTextNodeProps) => {
+  const [prompt, setPrompt] = useState('');
+  const [output, setOutput] = useState('');
   const [error, setError] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<TextModelType>(data.selectedModel || textModels[0].value);
-
-  const { toast: shadcnToast } = useShadcnToast();
+  const [selectedModel, setSelectedModel] = useState<ModelType>(models[0].value);
+  const { toast: toastUi } = useToast();
   const { user } = useAuth();
-  // const { deleteElements } = useReactFlow(); // Only if custom delete inside node is needed
+  const { deleteElements } = useReactFlow();
   const { useCredits: useCreditsFn, availableCredits } = useCredits();
-
-  const examplePromptText = "Summarize this article for a 5th grader: [paste article]";
 
   useEffect(() => {
     if (!user) {
-      shadcnToast({
+      toastUi({
         title: "Authentication Required",
         description: "Please ensure you're logged in to use the AI features.",
         variant: "destructive",
       });
     }
-  }, [user, shadcnToast]);
+  }, [user, toastUi]);
 
-  // ResizeObserver error handling (from original)
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       if (event.message === 'ResizeObserver loop limit exceeded') {
-        event.preventDefault(); // Keep this if it's a known issue in the project
+        event.preventDefault();
       }
     };
+
     window.addEventListener('error', handleError);
     return () => window.removeEventListener('error', handleError);
   }, []);
 
+  const handleDelete = () => {
+    if (id) {
+      deleteElements({ nodes: [{ id }] });
+    }
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     
     if (!user) {
       setError('Please log in to use the AI features');
-      shadcnToast({
+      toastUi({
         title: "Authentication Required",
         description: "Please log in to use the AI features.",
         variant: "destructive",
@@ -76,9 +75,10 @@ const TextToTextNode = memo((props: CustomNodeProps<TextToTextNodeData>) => {
       return;
     }
     
+    // Check if user has enough credits
     if (availableCredits === 0) {
       setError('You need credits to generate text');
-      shadcnToast({
+      toastUi({
         title: "No Credits Available",
         description: "You need credits to generate text. Visit the credits page to get more.",
         variant: "destructive",
@@ -86,12 +86,15 @@ const TextToTextNode = memo((props: CustomNodeProps<TextToTextNodeData>) => {
       return;
     }
     
+    // Use 1 credit for text generation
     const creditUsed = await useCreditsFn('text', 1, { 
       prompt: prompt.substring(0, 100) + (prompt.length > 100 ? '...' : ''),
       model: selectedModel
     });
     
-    if (!creditUsed) return;
+    if (!creditUsed) {
+      return;
+    }
     
     setIsGenerating(true);
     setError('');
@@ -99,14 +102,13 @@ const TextToTextNode = memo((props: CustomNodeProps<TextToTextNodeData>) => {
 
     try {
       const result = await generateText(prompt, selectedModel);
-      const newOutput = result.data?.output || result.output || 'No output received.';
-      setOutput(newOutput);
-      // props.onDataChange?.({ ...data, output: newOutput, prompt, selectedModel }); // Update central state
+      setOutput(result.data?.output || result.output || 'No output received.');
     } catch (err: any) {
       console.error('Error during generation:', err);
       const errorMessage = err.message || 'Failed to generate text. Please try again.';
       setError(errorMessage);
-      shadcnToast({
+      
+      toastUi({
         title: "Generation Failed",
         description: errorMessage,
         variant: "destructive",
@@ -116,108 +118,94 @@ const TextToTextNode = memo((props: CustomNodeProps<TextToTextNodeData>) => {
     }
   };
 
-  const currentBlockType = data.blockType || "TEXT";
-  // Determine model name for display in header; find label from textModels
-  const currentModelLabel = textModels.find(m => m.value === selectedModel)?.label || selectedModel;
-  const currentModelName = data.modelName || currentModelLabel || "GPT-4o Mini";
-
-
   return (
-    <BaseNodeWrapper {...props} data={{ ...data, blockType: currentBlockType, modelName: currentModelName, learnMoreLink: "#learn-text-nodes" }}>
-      <div className="space-y-3">
-        {/* "Try to..." Text Input Area */}
-        <Textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder={`Try to ask for a text response, e.g., '${examplePromptText}'`}
-          className="w-full min-h-[70px] p-2.5 bg-zinc-700/60 border-zinc-600/80 placeholder-gray-400/70 text-gray-100 rounded-md focus:bg-zinc-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-        />
+    <div className="w-[600px] bg-black/90 rounded-lg overflow-hidden">
+      <div className="flex items-center justify-between p-4 bg-zinc-900/50">
+        <h3 className="text-white font-medium">{data.label || 'Text to Text'}</h3>
+        <button 
+          onClick={handleDelete}
+          className="text-zinc-400 hover:text-white transition-colors"
+        >
+          <X size={18} />
+        </button>
+      </div>
 
-        {/* Model Selector - as an "action" or setting */}
-        <div>
-            <label className="text-xs font-medium text-gray-400 block mb-1">Model</label>
-            <Select
-                value={selectedModel}
-                onValueChange={(value: TextModelType) => setSelectedModel(value)}
-            >
-                <SelectTrigger className="w-full bg-zinc-700/40 hover:bg-zinc-600/60 border-zinc-600/70 text-gray-300 hover:text-white transition-colors h-9 text-sm">
-                    <SelectValue placeholder="Select a model" />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-700 text-gray-200 border-zinc-600">
-                    {textModels.map((model) => (
-                        <SelectItem key={model.value} value={model.value} className="text-sm hover:bg-zinc-600">
-                            {model.label}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-        </div>
-
-        {/* Output Area */}
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-gray-400">Output</label>
-          <div className="w-full min-h-[100px] bg-zinc-700/40 border border-zinc-600/50 text-gray-200 text-sm p-2.5 rounded-md overflow-y-auto pretty-scrollbar">
-            {error ? (
-              <p className="text-red-400/80">{error}</p>
-            ) : output ? (
-              <pre className="whitespace-pre-wrap break-words font-sans text-sm">{output}</pre>
-            ) : (
-              <span className="text-gray-500">Generated text will appear here...</span>
-            )}
-          </div>
-        </div>
-
-        {(prompt === '' || !prompt) && !output && (
-          <div className="mt-1 px-1 py-0.5">
-            <p className="text-xs text-gray-500/80 italic">
-              Example: {examplePromptText}
-            </p>
-          </div>
-        )}
-
-        {/* Generate Button & Credits */}
-        <div className="flex items-center justify-between pt-2 mt-1 border-t border-zinc-700/60">
-          <div className="flex items-center gap-1 text-zinc-400 text-xs">
-            <Coins className="h-3.5 w-3.5 text-yellow-500/80" />
-            <span>1 credit</span>
-          </div>
-          <Button
-            onClick={handleGenerate}
-            disabled={!prompt.trim() || isGenerating || !user || availableCredits === 0}
-            size="sm"
-            className="bg-teal-600 hover:bg-teal-500 text-white font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      <div className="p-4 space-y-4">
+        <div className="space-y-2">
+          <label className="text-xs text-zinc-400">Model</label>
+          <Select
+            value={selectedModel}
+            onValueChange={(value: ModelType) => setSelectedModel(value)}
           >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Generating...
-              </>
+            <SelectTrigger className="w-full bg-zinc-900 text-white border-zinc-800 focus:ring-0 focus:ring-offset-0 focus:border-teal-500">
+              <SelectValue placeholder="Select a model" />
+            </SelectTrigger>
+            <SelectContent className="bg-zinc-900 border-zinc-800">
+              {models.map((model) => (
+                <SelectItem
+                  key={model.value}
+                  value={model.value}
+                  className="text-white hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white"
+                >
+                  {model.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs text-zinc-400">Prompt</label>
+          <Textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Enter your prompt..."
+            className="w-full h-24 bg-zinc-900 text-white text-sm px-3 py-2 rounded-lg resize-none focus:outline-none border border-zinc-800 focus:border-teal-500 transition-colors"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs text-zinc-400">Output</label>
+          <div className="w-full min-h-[200px] bg-zinc-900 text-white text-sm p-3 rounded-lg border border-zinc-800 overflow-y-auto">
+            {error ? (
+              <p className="text-red-400">{error}</p>
+            ) : output ? (
+              output
             ) : (
-              'Generate Text'
+              'Generated text will appear here...'
             )}
-          </Button>
+          </div>
         </div>
       </div>
-      <style jsx>{`
-        .pretty-scrollbar::-webkit-scrollbar {
-          width: 6px;
-          height: 6px;
-        }
-        .pretty-scrollbar::-webkit-scrollbar-track {
-          background: rgba(74, 85, 104, 0.3); /* zinc-600/30 */
-          border-radius: 3px;
-        }
-        .pretty-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(113, 128, 150, 0.7); /* zinc-500/70 */
-          border-radius: 3px;
-        }
-        .pretty-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(113, 128, 150, 1); /* zinc-500 */
-        }
-      `}</style>
-    </BaseNodeWrapper>
+
+      <div className="flex items-center justify-between p-4 bg-zinc-900/30">
+        <div className="flex items-center gap-1 text-zinc-400 text-xs">
+          <Coins className="h-3.5 w-3.5 text-yellow-500" />
+          <span>1 credit</span>
+        </div>
+      
+        <Button
+          onClick={handleGenerate}
+          disabled={!prompt.trim() || isGenerating || !user || availableCredits === 0}
+          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Generating...</span>
+            </>
+          ) : (
+            'Generate'
+          )}
+        </Button>
+      </div>
+
+      <Handle type="target" position={Position.Left} className="!bg-teal-500" />
+      <Handle type="source" position={Position.Right} className="!bg-teal-500" />
+    </div>
   );
 });
 
 TextToTextNode.displayName = 'TextToTextNode';
+
 export default TextToTextNode;
