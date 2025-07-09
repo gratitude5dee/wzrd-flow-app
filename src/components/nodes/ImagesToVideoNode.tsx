@@ -1,182 +1,174 @@
 
 import { memo, useState } from 'react';
-import { Handle, Position } from 'reactflow';
-import { Upload, X, CircleDashed, Coins } from 'lucide-react';
+// import { Handle, Position } from 'reactflow'; // Handles are now in BaseNodeWrapper
+import BaseNodeWrapper, { CustomNodeProps, BaseNodeData } from './BaseNodeWrapper';
+import { Upload, CircleDashed, Coins, PlaySquare, Settings2, FileImage } from 'lucide-react'; // PlaySquare for video icon
 import { useCredits } from '@/hooks/useCredits';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 
-interface ImagesToVideoNodeProps {
-  data: {
-    label?: string;
-  };
+export interface ImagesToVideoNodeData extends BaseNodeData {
+  images?: (string | null)[]; // Array of image URLs or nulls
+  prompt?: string;
+  generatedVideo?: string | null; // URL of the generated video
 }
 
-const ImagesToVideoNode = memo(({ data }: ImagesToVideoNodeProps) => {
-  const [images, setImages] = useState<string[]>(Array(9).fill(null));
-  const [prompt, setPrompt] = useState('');
+const MAX_IMAGES = 9; // As per original grid
+
+const ImagesToVideoNode = memo((props: CustomNodeProps<ImagesToVideoNodeData>) => {
+  const { data } = props;
+
+  const [images, setImages] = useState<(string | null)[]>(data.images || Array(MAX_IMAGES).fill(null));
+  const [prompt, setPrompt] = useState(data.prompt || '');
+  const [generatedVideo, setGeneratedVideo] = useState<string | null>(data.generatedVideo || null);
   const [isGenerating, setIsGenerating] = useState(false);
+
   const { useCredits: useCreditsFn, availableCredits } = useCredits();
   const { user } = useAuth();
 
+  const examplePromptText = "A dynamic slideshow of these images with upbeat music.";
+
   const handleImageUpload = (index: number) => {
-    // This is a placeholder for the actual upload functionality
-    console.log('Upload image at index:', index);
+    // Placeholder: Trigger file input or connect to an asset manager
+    // For demonstration, let's simulate adding a placeholder image URL
+    const newImages = [...images];
+    if (newImages[index]) {
+      newImages[index] = null; // Click again to remove
+    } else {
+      newImages[index] = `https://via.placeholder.com/100?text=Img${index + 1}`; // Placeholder image
+    }
+    setImages(newImages);
+    // props.onDataChange?.({ ...data, images: newImages });
+    console.log('Upload/toggle image at index:', index);
   };
 
   const handleGenerate = async () => {
-    const uploadedImagesCount = images.filter(img => img !== null).length;
-    if (uploadedImagesCount < 2) {
-      toast.error('Please upload at least 2 images');
+    const uploadedImages = images.filter(img => img !== null);
+    if (uploadedImages.length < 2) {
+      toast.error('Please provide at least 2 images');
       return;
     }
-
     if (!user) {
       toast.error('Please log in to generate videos');
       return;
     }
-    
-    // Check if user has enough credits
-    if (availableCredits === 0) {
-      toast.error('You need credits to generate videos. Visit the credits page to get more.');
+    if (availableCredits < 2) { // Assuming video costs 2 credits
+      toast.error('You need at least 2 credits to generate videos.');
       return;
     }
     
-    // Cost for video generation is higher than images (2 credits)
     const creditUsed = await useCreditsFn('video', 2, { 
       prompt: prompt.substring(0, 100) + (prompt.length > 100 ? '...' : ''),
-      imageCount: uploadedImagesCount
+      imageCount: uploadedImages.length
     });
     
-    if (!creditUsed) {
-      return;
-    }
+    if (!creditUsed) return;
     
     setIsGenerating(true);
-    // TODO: Implement actual video generation
-    setTimeout(() => setIsGenerating(false), 2000);
+    setGeneratedVideo(null);
+    // TODO: Implement actual video generation API call
+    console.log("Generating video with images:", uploadedImages, "and prompt:", prompt);
+    // Simulate API call
+    setTimeout(() => {
+      setGeneratedVideo("https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4"); // Placeholder video URL
+      // props.onDataChange?.({ ...data, generatedVideo: "placeholder_video_url" });
+      setIsGenerating(false);
+      toast.success("Video generation started (simulation).");
+    }, 3000);
   };
 
+  const currentBlockType = data.blockType || "VIDEO";
+  const currentModelName = data.modelName || "SVD 1.1"; // Example video model
+
   return (
-    <div className="w-[800px] bg-black/90 rounded-lg overflow-hidden">
-      <div className="flex items-center justify-between p-4 bg-zinc-900/50">
-        <h3 className="text-white font-medium">Images to Video</h3>
-        <button className="text-zinc-400 hover:text-white">
-          <X size={18} />
-        </button>
-      </div>
+    <BaseNodeWrapper {...props} data={{ ...data, blockType: currentBlockType, modelName: currentModelName, learnMoreLink: "#learn-video-nodes" }} >
+      <div className="space-y-3">
+        {/* "Try to..." Text Input Area for prompt/instructions */}
+        <Textarea
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder={`Try to describe the video, e.g., '${examplePromptText}'`}
+          className="w-full min-h-[60px] p-2.5 bg-zinc-700/60 border-zinc-600/80 placeholder-gray-400/70 text-gray-100 rounded-md focus:bg-zinc-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        />
 
-      <div className="flex p-4 gap-4">
-        {/* Left Side - Image Grid */}
-        <div className="w-[300px]">
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {images.map((image, index) => (
-              <div
-                key={index}
-                onClick={() => handleImageUpload(index)}
-                className="aspect-square bg-zinc-900 rounded-lg flex items-center justify-center cursor-pointer hover:bg-zinc-800 transition-colors"
-              >
-                {image ? (
-                  <img
-                    src={image}
-                    alt={`Frame ${index + 1}`}
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                ) : (
-                  index === 0 ? (
-                    <div className="p-2 bg-zinc-800 rounded-lg">
-                      <Upload className="w-4 h-4 text-zinc-400" />
-                    </div>
-                  ) : null
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Prompt Input */}
-          <div className="mt-auto">
-            <div className="text-xs text-zinc-400 mb-2">Prompt</div>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              className="w-full h-[120px] bg-zinc-900 text-white text-sm px-3 py-2 rounded-lg resize-none focus:outline-none"
-              placeholder="Enter your prompt..."
-            />
-          </div>
+        {/* Image Grid for uploads */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          {images.map((imageSrc, index) => (
+            <button
+              key={index}
+              onClick={() => handleImageUpload(index)}
+              title={imageSrc ? "Click to remove image" : "Click to upload image"}
+              className={`aspect-square bg-zinc-700/40 border border-zinc-600/50 rounded-md flex items-center justify-center cursor-pointer hover:bg-zinc-600/60 hover:border-zinc-500 transition-colors group relative overflow-hidden ${imageSrc ? 'border-green-500/50 hover:border-red-500/50' : ''}`}
+            >
+              {imageSrc ? (
+                <img src={imageSrc} alt={`Frame ${index + 1}`} className="w-full h-full object-cover" />
+              ) : (
+                <FileImage size={20} className="text-gray-500 group-hover:text-gray-400" />
+              )}
+               {!imageSrc && <span className="absolute bottom-1 right-1 text-[9px] text-gray-500 group-hover:text-gray-400">{index+1}</span>}
+            </button>
+          ))}
         </div>
 
-        {/* Right Side - Preview */}
-        <div className="flex-1">
-          <div className="aspect-video bg-zinc-900 rounded-lg flex items-center justify-center">
-            {isGenerating ? (
-              <div className="flex flex-col items-center gap-2">
-                <CircleDashed className="w-8 h-8 animate-spin text-zinc-400" />
-                <span className="text-sm text-zinc-400">Generating video...</span>
-              </div>
-            ) : (
-              <div className="text-zinc-600">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center">
-                      <Upload className="w-6 h-6 text-zinc-500" />
-                    </div>
-                  </div>
-                  <svg width="200" height="200" viewBox="0 0 200 200">
-                    <path
-                      d="M100 0 L200 100 L100 200 L0 100 Z"
-                      stroke="currentColor"
-                      strokeWidth="1"
-                      fill="none"
-                      className="text-zinc-800"
-                    />
-                    <path
-                      d="M50 50 L150 50 L150 150 L50 150 Z"
-                      stroke="currentColor"
-                      strokeWidth="1"
-                      fill="none"
-                      className="text-zinc-800"
-                    />
-                  </svg>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+        {/* Action buttons if any (e.g., advanced video settings) */}
+         <Button variant="outline" size="sm" className="w-full justify-start bg-zinc-700/40 hover:bg-zinc-600/60 border-zinc-600/70 text-gray-300 hover:text-white transition-colors">
+            <Settings2 size={15} className="mr-2.5 text-gray-400" />
+            Video settings (e.g., duration, FPS)
+        </Button>
 
-      {/* Bottom Controls */}
-      <div className="flex items-center justify-between p-4 bg-zinc-900/30">
-        <div className="flex items-center gap-2">
-          <button className="p-2 bg-zinc-800 rounded-lg">
-            <Upload className="w-4 h-4 text-zinc-400" />
-          </button>
-          <div className="flex items-center gap-1 text-zinc-400 text-xs">
-            <Coins className="h-3.5 w-3.5 text-yellow-500" />
-            <span>2 credits</span>
-          </div>
-        </div>
-        <button
-          onClick={handleGenerate}
-          disabled={images.filter(img => img !== null).length < 2 || !user || availableCredits < 2}
-          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        {/* Video Preview Area */}
+        <div className="aspect-video bg-zinc-700/40 rounded-lg overflow-hidden border border-zinc-600/50 flex items-center justify-center text-gray-500">
           {isGenerating ? (
-            <>
-              <CircleDashed className="w-4 h-4 animate-spin" />
-              <span>Generating...</span>
-            </>
+            <div className="flex flex-col items-center gap-2 p-4 text-center">
+              <CircleDashed className="w-8 h-8 animate-spin text-gray-400" />
+              <span className="text-sm text-gray-400">Generating video...</span>
+            </div>
+          ) : generatedVideo ? (
+            <video src={generatedVideo} controls className="w-full h-full object-contain" />
           ) : (
-            <>Connect or upload at least 2 images</>
+            <div className="flex flex-col items-center gap-2 p-4 text-center">
+                <PlaySquare size={32} />
+                <span>Video preview will appear here</span>
+            </div>
           )}
-        </button>
-      </div>
+        </div>
 
-      <Handle type="target" position={Position.Left} className="!bg-teal-500" />
-      <Handle type="source" position={Position.Right} className="!bg-teal-500" />
-    </div>
+        {(prompt === '' || !prompt) && images.every(img => img === null) && (
+          <div className="mt-1 px-1 py-0.5">
+            <p className="text-xs text-gray-500/80 italic">
+              Example: Upload images and describe the desired video output.
+            </p>
+          </div>
+        )}
+
+        {/* Generate Button & Credits */}
+        <div className="flex items-center justify-between pt-2 mt-1 border-t border-zinc-700/60">
+          <div className="flex items-center gap-1 text-zinc-400 text-xs">
+            <Coins className="h-3.5 w-3.5 text-yellow-500/80" />
+            <span>2 credits</span> {/* Assuming 2 credits for video */}
+          </div>
+          <Button
+            onClick={handleGenerate}
+            disabled={images.filter(img => img !== null).length < 2 || isGenerating || !user || availableCredits < 2}
+            size="sm"
+            className="bg-teal-600 hover:bg-teal-500 text-white font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isGenerating ? (
+              <>
+                <CircleDashed className="w-4 h-4 animate-spin mr-2" />
+                Generating...
+              </>
+            ) : (
+              'Generate Video'
+            )}
+          </Button>
+        </div>
+      </div>
+    </BaseNodeWrapper>
   );
 });
 
 ImagesToVideoNode.displayName = 'ImagesToVideoNode';
-
 export default ImagesToVideoNode;
