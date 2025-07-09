@@ -1,4 +1,4 @@
-import { memo, useState, useCallback } from 'react';
+import React, { memo, useState, useCallback } from 'react';
 // import { Handle, Position, useReactFlow } from 'reactflow'; // Handles are now in BaseNodeWrapper
 import { useReactFlow } from 'reactflow'; // Keep for deleteElements if needed elsewhere, or remove if BaseNodeWrapper handles all
 import BaseNodeWrapper, { CustomNodeProps, BaseNodeData } from './BaseNodeWrapper';
@@ -29,7 +29,7 @@ const ASPECT_RATIOS: AspectRatioOption[] = ["1:1", "16:9", "9:16", "4:3", "3:4",
 const STYLES: StyleOption[] = ["auto", "general", "realistic", "design", "render_3D", "anime"];
 
 const TextToImageNode = memo((props: CustomNodeProps<TextToImageNodeData>) => {
-  const { id, data, onDataChange: _, ...restProps } = props; // onDataChange might be needed if we make fields controlled from outside
+  const { id, data, ...restProps } = props;
 
   // Initialize state from data or defaults
   const [prompt, setPrompt] = useState(data.prompt || '');
@@ -173,11 +173,11 @@ const TextToImageNode = memo((props: CustomNodeProps<TextToImageNodeData>) => {
             </Button>
             {/* Could make advanced settings collapsible */}
             <Disclosure>
-                <Disclosure.Button as={Button} variant="outline" size="sm" className="w-full justify-start bg-zinc-700/40 hover:bg-zinc-600/60 border-zinc-600/70 text-gray-300 hover:text-white transition-colors">
+                <DisclosureButton variant="outline" size="sm" className="w-full justify-start bg-zinc-700/40 hover:bg-zinc-600/60 border-zinc-600/70 text-gray-300 hover:text-white transition-colors">
                     <Settings2 size={15} className="mr-2.5 text-gray-400" />
                     Advanced settings
-                </Disclosure.Button>
-                <Disclosure.Panel className="pt-2 pb-1 space-y-3 bg-zinc-700/20 px-2.5 rounded-b-md border border-t-0 border-zinc-600/70">
+                </DisclosureButton>
+                <DisclosurePanel className="pt-2 pb-1 space-y-3 bg-zinc-700/20 px-2.5 rounded-b-md border border-t-0 border-zinc-600/70">
                     <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
                         <div>
                             <label className="text-xs font-medium text-gray-400 block mb-1">Style</label>
@@ -211,7 +211,7 @@ const TextToImageNode = memo((props: CustomNodeProps<TextToImageNodeData>) => {
                             className="w-full min-h-[50px] p-2 bg-zinc-600/50 border-zinc-500/70 placeholder-gray-500 text-gray-200 rounded-md text-xs focus:bg-zinc-600 focus:border-blue-500"
                         />
                     </div>
-                </Disclosure.Panel>
+                </DisclosurePanel>
             </Disclosure>
         </div>
 
@@ -276,27 +276,28 @@ const Disclosure = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
     }
 );
 
-Disclosure.Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & {as?: React.ElementType}>(
+const DisclosureButton = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: string; size?: string }>(
     function DisclosureButton(props, ref) {
-        const { open, setOpen } = useDisclosureContext("Disclosure.Button") as any; // Type assertion for simplicity
-        const { as: Component = 'button', ...theirProps } = props;
+        const { open, setOpen } = useDisclosureContext("DisclosureButton") as any;
+        const { variant, size, className = '', ...theirProps } = props;
 
         const ourProps = {
             ref,
             onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
-                e.stopPropagation(); // Prevent parent Disclosure onClick if it exists
+                e.stopPropagation();
                 setOpen(!open);
                 props.onClick?.(e);
             },
             'aria-expanded': open,
+            className: `${className} inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-input bg-transparent hover:bg-accent hover:text-accent-foreground h-9 px-3`,
         };
-        return <Component {...theirProps} {...ourProps} />;
+        return <button {...theirProps} {...ourProps} />;
     }
 );
 
-Disclosure.Panel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+const DisclosurePanel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
     function DisclosurePanel(props, ref) {
-        const { open } = useDisclosureContext("Disclosure.Panel");
+        const { open } = useDisclosureContext("DisclosurePanel");
         if (!open) return null;
         return <div ref={ref} {...props} />;
     }

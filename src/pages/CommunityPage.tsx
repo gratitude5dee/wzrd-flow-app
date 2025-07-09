@@ -48,7 +48,7 @@ const HorizontallyScrollableSection: React.FC<{ title: string; items: any[]; Car
         ))}
       </div>
        {/* Custom scrollbar styling (optional, if scrollbar-hide is not enough or for browsers that don't support it) */}
-      <style jsx>{`
+      <style>{`
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }

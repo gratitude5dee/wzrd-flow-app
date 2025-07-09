@@ -198,7 +198,7 @@ const TextToTextNode = memo((props: CustomNodeProps<TextToTextNodeData>) => {
           </Button>
         </div>
       </div>
-      <style jsx>{`
+      <style>{`
         .pretty-scrollbar::-webkit-scrollbar {
           width: 6px;
           height: 6px;

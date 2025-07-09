@@ -12,9 +12,9 @@ export interface BaseNodeData {
 }
 
 // Extend NodeProps with our custom data type
-export interface CustomNodeProps extends NodeProps<BaseNodeData> {}
+export interface CustomNodeProps<T extends BaseNodeData = BaseNodeData> extends NodeProps<T> {}
 
-const BaseNodeWrapper: React.FC<React.PropsWithChildren<CustomNodeProps>> = ({
+const BaseNodeWrapper: React.FC<React.PropsWithChildren<CustomNodeProps<any>>> = ({
   data,
   children,
   isConnectable,

@@ -45,6 +45,16 @@ const App = () => {
                   <Index viewMode="editor" />
                 </ProtectedRoute>
               } />
+              <Route path="/studio" element={
+                <ProtectedRoute>
+                  <Index viewMode="studio" />
+                </ProtectedRoute>
+              } />
+              <Route path="/storyboard" element={
+                <ProtectedRoute>
+                  <Index viewMode="storyboard" />
+                </ProtectedRoute>
+              } />
               <Route path="/editor/:projectId" element={
                 <ProtectedRoute>
                   <Index viewMode="editor" />

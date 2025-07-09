@@ -152,7 +152,7 @@ const Canvas = () => {
           className="bg-transparent" // Make ReactFlow bg transparent to see the parent's dot grid
           minZoom={0.2}
           maxZoom={4}
-          onPaneDoubleClick={onPaneDoubleClick}
+          onDoubleClick={onPaneDoubleClick}
         >
           {/* Background component from ReactFlow for its own grid, if canvas-background is not sufficient or for layering */}
           {/* The main dot grid is on parent, this one can be different or removed */}
