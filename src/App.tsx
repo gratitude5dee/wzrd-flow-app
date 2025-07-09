@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import Credits from "./pages/Credits";
 import ProjectSetup from "./pages/ProjectSetup";
+import CommunityPage from "./pages/CommunityPage"; // Import CommunityPage
 import { useState } from "react";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,11 @@ const App = () => {
               <Route path="/credits" element={
                 <ProtectedRoute>
                   <Credits />
+                </ProtectedRoute>
+              } />
+              <Route path="/community" element={ // Add community page route
+                <ProtectedRoute>
+                  <CommunityPage />
                 </ProtectedRoute>
               } />
               <Route path="/" element={<Navigate to="/home" replace />} />
